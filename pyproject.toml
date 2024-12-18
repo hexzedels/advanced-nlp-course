@@ -1,0 +1,31 @@
+[tool.poetry]
+name = "bert-impl"
+version = "0.1.0"
+description = ""
+authors = ["max <mr.applexz@gmail.com>"]
+readme = "README.md"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = ">=3.11,<3.12.4"
+transformers = "^4.45.1"
+torch = "^2.4.1"
+tokenizers = "^0.20.0"
+torchinfo = "^1.8.0"
+tensorboard = "^2.18.0"
+aim = "<4.0.0"
+plotly = "^5.24.1"
+plotly-express = "^0.4.1"
+datasets = "^3.1.0"
+pytorch-metric-learning = "^2.7.0"
+accelerate = "^1.1.1"
+torchmetrics = "^1.6.0"
+onnx = "^1.17.0"
+onnxruntime = "^1.20.1"
+onnxscript = "^0.1.0.dev20241209"
+vllm = "^0.6.4.post1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
