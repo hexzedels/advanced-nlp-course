@@ -4,8 +4,7 @@ from transformers import AutoModel
 
 from const import BASE_MODEL_NAME, LABELS
 
-
-class MultilabelPoolerWithHead(nn.Module):
+class MultiLabelPoolerWithHead(nn.Module):
     def __init__(self, hidden_size: int, num_classes: int):
         super().__init__()
 
@@ -22,21 +21,18 @@ class MultilabelPoolerWithHead(nn.Module):
         x = self.linear_2(x)  # [BATCH x NUM_CLASSES]
         return x
 
-
-
 class MultiLabelModel(nn.Module):
     def __init__(self):
         super().__init__()
 
         self.encoder = AutoModel.from_pretrained(BASE_MODEL_NAME)
-        self.pooler_head = MultilabelPoolerWithHead(self.encoder.config.hidden_size, len(LABELS))
+        self.pooler_head = MultiLabelPoolerWithHead(self.encoder.config.hidden_size, len(LABELS))
 
     def forward(self, input_ids: torch.Tensor, attention_mask: torch.Tensor, token_type_ids: torch.Tensor) -> torch.Tensor:
         encoder_outs = self.encoder(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids)
         last_hidden_state = encoder_outs.last_hidden_state
         logits = self.pooler_head(last_hidden_state)
         return logits
-
 
 class MultiLabelWrap(nn.Module):
     def __init__(self, model: MultiLabelModel):

@@ -3,12 +3,17 @@ from pathlib import Path
 
 import click
 import torch
+
+torch.backends.cuda.matmul.allow_tf32 = True
+torch.backends.cudnn.allow_tf32 = True
+
 import transformers
 from accelerate import Accelerator
 from accelerate.utils import set_seed, tqdm
 from torch.nn import BCEWithLogitsLoss
 from torch.utils.data import DataLoader
 from torchmetrics import Accuracy
+from torchmetrics import F1Score
 from transformers import AdamW
 
 from config import TrainConfig
@@ -97,9 +102,13 @@ def train(config_path: Path):
                     current_step + 1
                 ) % config.eval_steps == 0 or current_step + 1 == total_steps:
                     model.eval()
+
                     accuracy = Accuracy(task="multilabel", num_labels=len(LABELS)).to(
                         accelerator.device
                     )
+                    micro_f1 = F1Score(task="multilabel", num_labels=len(LABELS), average="micro").to(accelerator.device)
+                    macro_f1 = F1Score(task="multilabel", num_labels=len(LABELS), average="macro").to(accelerator.device)
+
                     with tqdm(desc="Eval", total=len(eval_dataloader)) as eval_pbar:
                         with torch.no_grad():
                             for eval_batch in eval_dataloader:
@@ -117,10 +126,26 @@ def train(config_path: Path):
                                 accuracy.update(
                                     eval_predictions_total, eval_target_total
                                 )
+                                micro_f1.update(
+                                    eval_predictions_total, eval_target_total,
+                                )
+                                macro_f1.update(
+                                    eval_predictions_total, eval_target_total,
+                                )
                                 eval_pbar.update(1)
+
                     metric_value = accuracy.compute()
+                    metric_macro_f1 = macro_f1.compute()
+                    metric_micro_f1 = micro_f1.compute()
+
                     accelerator.log(
                         {"eval_accuracy": metric_value.item()}, step=current_step + 1
+                    )
+                    accelerator.log(
+                        {"eval_macro_f1": metric_macro_f1.item()}, step=current_step + 1
+                    )
+                    accelerator.log(
+                        {"eval_micro_f1": metric_micro_f1.item()}, step=current_step + 1
                     )
                     accuracy.reset()
                     model.train()
