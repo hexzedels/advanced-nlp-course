@@ -20,18 +20,51 @@ class MultiLabelPoolerWithHead(nn.Module):
         x = self.tanh(x)
         x = self.linear_2(x)  # [BATCH x NUM_CLASSES]
         return x
+    
+
+class MultiLabelAvgPoolerWithHead(nn.Module):
+    def __init__(self, hidden_size: int, num_classes: int):
+        super().__init__()
+
+        self.linear_1 = nn.Linear(hidden_size, hidden_size)
+        self.tanh = nn.Tanh()
+        self.linear_2 = nn.Linear(hidden_size, num_classes)
+
+    def average_pool(last_hidden_states: Tensor, attention_mask: Tensor) -> Tensor:
+        last_hidden = last_hidden_states.masked_fill(
+            ~attention_mask[..., None].bool(), 0.0
+        )
+        return last_hidden.sum(dim=1) / attention_mask.sum(dim=1)[..., None]
+    
+    def forward(
+            self,
+            last_hidden_state: Tensor,
+            attention_mask: Tensor,
+            ):
+        # last hidden state shape: [BATCH x SEQ_LEN x HIDDEN_SIZE]
+        # Seq: [CLS], Tok1, Tok2, Tok3, [SEP]
+
+        x = self.average_pool(last_hidden_state, attention_mask)
+        x = self.linear_1(x)
+        x = self.tanh(x)
+        x = self.linear_2(x)  # [BATCH x NUM_CLASSES]
+        return x
+    
 
 class MultiLabelModel(nn.Module):
     def __init__(self):
         super().__init__()
 
         self.encoder = AutoModel.from_pretrained(BASE_MODEL_NAME)
-        self.pooler_head = MultiLabelPoolerWithHead(self.encoder.config.hidden_size, len(LABELS))
+        # self.pooler_head = MultiLabelPoolerWithHead(self.encoder.config.hidden_size, len(LABELS)) # baseline
+        self.pooler_head = MultiLabelAvgPoolerWithHead(self.encoder.config.hidden_size, len(LABELS)) # average
+
 
     def forward(self, input_ids: torch.Tensor, attention_mask: torch.Tensor, token_type_ids: torch.Tensor) -> torch.Tensor:
         encoder_outs = self.encoder(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids)
         last_hidden_state = encoder_outs.last_hidden_state
-        logits = self.pooler_head(last_hidden_state)
+        # logits = self.pooler_head(last_hidden_state) # baseline
+        logits = self.pooler_head(last_hidden_state, attention_mask) # average
         return logits
 
 class MultiLabelWrap(nn.Module):
