@@ -113,7 +113,7 @@ def train(config_path: Path):
                         with torch.no_grad():
                             for eval_batch in eval_dataloader:
                                 logits_eval = model(
-                                    input_ids=batch["input_ids"],
+                                    input_ids=eval_batch["input_ids"],
                                     attention_mask=batch["attention_mask"],
                                     token_type_ids=batch["token_type_ids"],
                                 )

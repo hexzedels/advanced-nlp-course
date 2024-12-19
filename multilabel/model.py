@@ -30,7 +30,7 @@ class MultiLabelAvgPoolerWithHead(nn.Module):
         self.tanh = nn.Tanh()
         self.linear_2 = nn.Linear(hidden_size, num_classes)
 
-    def average_pool(last_hidden_states: Tensor, attention_mask: Tensor) -> Tensor:
+    def average_pool(self, last_hidden_states: Tensor, attention_mask: Tensor) -> Tensor:
         last_hidden = last_hidden_states.masked_fill(
             ~attention_mask[..., None].bool(), 0.0
         )
