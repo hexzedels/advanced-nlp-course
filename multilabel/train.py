@@ -12,8 +12,7 @@ from accelerate import Accelerator
 from accelerate.utils import set_seed, tqdm
 from torch.nn import BCEWithLogitsLoss
 from torch.utils.data import DataLoader
-from torchmetrics import Accuracy
-from torchmetrics import F1Score
+from torchmetrics import F1Score, AUROC
 from transformers import AdamW
 
 from config import TrainConfig
@@ -103,19 +102,17 @@ def train(config_path: Path):
                 ) % config.eval_steps == 0 or current_step + 1 == total_steps:
                     model.eval()
 
-                    accuracy = Accuracy(task="multilabel", num_labels=len(LABELS)).to(
-                        accelerator.device
-                    )
                     micro_f1 = F1Score(task="multilabel", num_labels=len(LABELS), average="micro").to(accelerator.device)
                     macro_f1 = F1Score(task="multilabel", num_labels=len(LABELS), average="macro").to(accelerator.device)
+                    auroc = AUROC(task='multilabel', num_labels=len(LABELS), average='macro').to(accelerator.device)
 
                     with tqdm(desc="Eval", total=len(eval_dataloader)) as eval_pbar:
                         with torch.no_grad():
                             for eval_batch in eval_dataloader:
                                 logits_eval = model(
                                     input_ids=eval_batch["input_ids"],
-                                    attention_mask=batch["attention_mask"],
-                                    token_type_ids=batch["token_type_ids"],
+                                    attention_mask=eval_batch["attention_mask"],
+                                    token_type_ids=eval_batch["token_type_ids"],
                                 )
                                 preds_proba_eval = torch.sigmoid(logits_eval)
                                 eval_predictions_total, eval_target_total = (
@@ -123,31 +120,21 @@ def train(config_path: Path):
                                         (preds_proba_eval, eval_batch["labels"])
                                     )
                                 )
-                                accuracy.update(
-                                    eval_predictions_total, eval_target_total
-                                )
-                                micro_f1.update(
-                                    eval_predictions_total, eval_target_total,
-                                )
-                                macro_f1.update(
-                                    eval_predictions_total, eval_target_total,
-                                )
+                                micro_f1.update(eval_predictions_total, eval_target_total.to(torch.long))
+                                macro_f1.update(eval_predictions_total, eval_target_total.to(torch.long))
+                                auroc.update(eval_predictions_total, eval_target_total.to(torch.long))
                                 eval_pbar.update(1)
 
-                    metric_value = accuracy.compute()
-                    metric_macro_f1 = macro_f1.compute()
-                    metric_micro_f1 = micro_f1.compute()
-
                     accelerator.log(
-                        {"eval_accuracy": metric_value.item()}, step=current_step + 1
+                        {
+                            "eval_macro_f1": macro_f1.compute().item(),
+                            "eval_micro_f1": micro_f1.compute().item(),
+                            "eval_aucroc_macro":auroc.compute().item()
+                            }, step=current_step + 1
                     )
-                    accelerator.log(
-                        {"eval_macro_f1": metric_macro_f1.item()}, step=current_step + 1
-                    )
-                    accelerator.log(
-                        {"eval_micro_f1": metric_micro_f1.item()}, step=current_step + 1
-                    )
-                    accuracy.reset()
+                    micro_f1.reset()
+                    macro_f1.reset()
+                    auroc.reset()
                     model.train()
 
                 if (
