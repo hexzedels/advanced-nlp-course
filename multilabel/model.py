@@ -52,19 +52,24 @@ class MultiLabelAvgPoolerWithHead(nn.Module):
     
 
 class MultiLabelModel(nn.Module):
-    def __init__(self):
+    def __init__(self, avg: bool):
         super().__init__()
+        self.avg = avg
 
         self.encoder = AutoModel.from_pretrained(BASE_MODEL_NAME)
-        # self.pooler_head = MultiLabelPoolerWithHead(self.encoder.config.hidden_size, len(LABELS)) # baseline
-        self.pooler_head = MultiLabelAvgPoolerWithHead(self.encoder.config.hidden_size, len(LABELS)) # average
+        if avg == True:
+            self.pooler_head = MultiLabelAvgPoolerWithHead(self.encoder.config.hidden_size, len(LABELS)) # average
+        else:
+            self.pooler_head = MultiLabelPoolerWithHead(self.encoder.config.hidden_size, len(LABELS)) # baseline
 
 
     def forward(self, input_ids: torch.Tensor, attention_mask: torch.Tensor, token_type_ids: torch.Tensor) -> torch.Tensor:
         encoder_outs = self.encoder(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids)
         last_hidden_state = encoder_outs.last_hidden_state
-        # logits = self.pooler_head(last_hidden_state) # baseline
-        logits = self.pooler_head(last_hidden_state, attention_mask) # average
+        if self.avg == True:
+            logits = self.pooler_head(last_hidden_state, attention_mask) # average
+        else:
+            logits = self.pooler_head(last_hidden_state) # baseline
         return logits
 
 class MultiLabelWrap(nn.Module):

@@ -1,7 +1,5 @@
 tests
 
-data
-
 *.tar.gz
 
 *.safetensors

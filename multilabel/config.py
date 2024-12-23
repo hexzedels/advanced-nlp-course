@@ -20,3 +20,4 @@ class TrainConfig(BaseModel):
     save_steps: int
     save_path: Path
     eval_steps: int
+    average: bool

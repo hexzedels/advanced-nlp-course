@@ -45,7 +45,7 @@ def train(config_path: Path):
         config.experiment_name, config=json.loads(config.model_dump_json())
     )
 
-    model = MultiLabelModel()
+    model = MultiLabelModel(config.average)
     optimizer = AdamW(
         model.parameters(), lr=config.lr, weight_decay=config.weight_decay
     )
