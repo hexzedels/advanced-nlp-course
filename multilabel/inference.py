@@ -33,9 +33,12 @@ class BertInfer:
         })
         result = result[0][0]
         return {k: result[i].item() for i, k in self._class_map.items()}
-
+    
+@click.option('--save-dir', type=Path, required=True)
+def inference(save_dir: Path):
+    infer = BertInfer(save_dir)
+    result = infer.predict('Hello! Some non-toxic text')
+    print(result)
 
 if __name__ == '__main__':
-    infer = BertInfer(Path('/home/me/projects/misis/bert-impl/saves/multilabel'))
-    result = infer.predict('Hello! Some non-toxic text')
-    print(123)
+    inference()

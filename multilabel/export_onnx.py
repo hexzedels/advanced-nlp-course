@@ -17,7 +17,8 @@ _TEST_SEQUENCE = 'Hello, world! This a regular comment'
 @click.command()
 @click.option('--weights-path', type=Path, required=True)
 @click.option('--save-dir', type=Path, required=True)
-def main(weights_path: Path, save_dir: Path):
+@click.option('--avg', type=bool, required=True)
+def main(weights_path: Path, save_dir: Path, avg: bool):
     tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL_NAME)
     tokenizer.save_pretrained(save_dir / 'tokenizer')
 
@@ -25,8 +26,8 @@ def main(weights_path: Path, save_dir: Path):
         json.dump({class_name: class_idx for class_idx, class_name in enumerate(LABELS)}, f)
 
     test_data = tokenizer.encode_plus(_TEST_SEQUENCE)
-
-    model = MultiLabelModel()
+ 
+    model = MultiLabelModel(avg)
     model_weights = safetensors.torch.load_file(str(weights_path))
     model.load_state_dict(model_weights)
     model = MultiLabelWrap(model).eval()

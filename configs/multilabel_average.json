@@ -9,8 +9,8 @@
   "batch_size": 60,
   "num_workers": 6,
   "epochs": 2,
-  "experiment_name": "multilabel_average_head",
-  "save_path": "saves/multilabel_average_head",
+  "experiment_name": "multilabel_average",
+  "save_path": "saves/multilabel_average",
   "save_steps": 500,
   "eval_steps": 250,
   "average": true
