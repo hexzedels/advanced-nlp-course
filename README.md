@@ -65,20 +65,18 @@
    ```shell
    tar -czvf aim_repo.tar.gz .aim
    ```
-2. Скопировать архив в папку aim
+2. Запустить docker compose
 
    ```shell
-   cp aim_repo.tar.gz ./aim/
+   docker compose up -d
    ```
-3. Зайти в директорию aim и запустить docker compose
-
-   ```shell
-   сd aim && docker compose up -d
-   ```
+3. Перейти по `localhost:7860`
 
 ## Результаты
 
 Обучение производилось на *Nvida Tesla A100 40GB*
+
+Метрики можно посмотреть на [hugging face spaces](https://huggingface.co/spaces/hexzedels/AIM) и с помощью гайда выше.
 
 ### Метрики baseline модели
 
